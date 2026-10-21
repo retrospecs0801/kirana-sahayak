@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { db } from '../db'
 
 export type VoiceState = 'idle' | 'recording' | 'transcribing' | 'parsing' | 'done' | 'error'
-export interface VoiceParsed { itemName: string; qty: number; unit: string; confidence: number }
+export interface VoiceParsed { itemName: string | null; qty: number; unit: string; confidence: number }
 interface TranscribeResponse { transcript?: string; error?: string }
-interface ParseResponse { item?: string; qty?: number; unit?: string; confidence?: number; error?: string }
+interface ParseResponse { item?: string | null; qty?: number; unit?: string; confidence?: number; error?: string }
 
-export function useVoice() {
+async function readJsonResponse<T>(response: Response, endpoint: string): Promise<T> {
+  const body = await response.text()
+  if (!body.trim()) throw new Error(`${endpoint} returned an empty response (HTTP ${response.status})`)
+  try {
+    return JSON.parse(body) as T
+  } catch {
+    throw new Error(`${endpoint} returned an invalid response (HTTP ${response.status})`)
+  }
+}
+
+export function useVoice(itemNames: string[]) {
   const [state, setState] = useState<VoiceState>('idle')
   const [transcript, setTranscript] = useState('')
   const [parsed, setParsed] = useState<VoiceParsed | null>(null)
@@ -80,22 +89,21 @@ export function useVoice() {
       const audioForm = new FormData()
       audioForm.append('audio', blob, 'recording.webm')
       const transcriptionResponse = await fetch('/api/transcribe', { method: 'POST', body: audioForm })
-      const transcription = await transcriptionResponse.json() as TranscribeResponse
+      const transcription = await readJsonResponse<TranscribeResponse>(transcriptionResponse, 'Transcription service')
       if (requestIdRef.current !== requestId) return
       if (!transcriptionResponse.ok || typeof transcription.transcript !== 'string') throw new Error(transcription.error || 'Transcription failed')
       setTranscript(transcription.transcript)
 
       setState('parsing')
-      const items = (await db.items.toArray()).flatMap(item => [item.name_hi, item.name_en, ...item.aliases])
       const parseResponse = await fetch('/api/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: transcription.transcript, items }),
+        body: JSON.stringify({ transcript: transcription.transcript, items: itemNames }),
       })
-      const result = await parseResponse.json() as ParseResponse
+      const result = await readJsonResponse<ParseResponse>(parseResponse, 'Item parser')
       if (requestIdRef.current !== requestId) return
-      if (!parseResponse.ok || typeof result.item !== 'string' || typeof result.qty !== 'number' || typeof result.unit !== 'string') throw new Error(result.error || 'Could not parse the spoken sale')
-      setParsed({ itemName: result.item, qty: result.qty, unit: result.unit, confidence: typeof result.confidence === 'number' ? result.confidence : 0 })
+      if (!parseResponse.ok || (result.item !== null && typeof result.item !== 'string') || typeof result.qty !== 'number' || typeof result.unit !== 'string') throw new Error(result.error || 'Could not parse the spoken sale')
+      setParsed({ itemName: result.item ?? null, qty: result.qty, unit: result.unit, confidence: typeof result.confidence === 'number' ? result.confidence : 0 })
       setState('done')
     } catch (cause) {
       if (requestIdRef.current !== requestId) return
@@ -104,7 +112,7 @@ export function useVoice() {
       setError(message)
       setState('error')
     }
-  }, [releaseMedia, state])
+  }, [itemNames, releaseMedia, state])
 
   useEffect(() => () => {
     if (recorderRef.current?.state === 'recording') recorderRef.current.stop()

@@ -22,7 +22,7 @@ export default function App() {
     }
   }, [])
   return <div className="app-shell">{!online && <div role="status" className="offline-banner">No internet — tap entry still works / इंटरनेट नहीं — टैप से काम करें</div>}<header className="topbar"><div className="brand-mark">द</div><div><h1>Dukaan Saathi</h1><p>आपकी दुकान का साथी</p></div><span className="offline-pill">● Offline ready</span></header>
-    <main className="main-content"><div className="screen-heading"><h2>{tabs.find(x => x.id === active)?.hi}</h2><span>{tabs.find(x => x.id === active)?.en}</span></div>{active === 'inventory' && <InventoryScreen/>}{active === 'sale' && <RecordSaleScreen/>}{active === 'reorder' && <ReorderScreen/>}{active === 'lost' && <LostSalesScreen/>}</main>
+    <main className="main-content"><div className="screen-heading"><h2>{tabs.find(x => x.id === active)?.hi}</h2><span>{tabs.find(x => x.id === active)?.en}</span></div>{active === 'inventory' && <InventoryScreen onNavigate={tab => setActive(tab)}/>}{active === 'sale' && <RecordSaleScreen/>}{active === 'reorder' && <ReorderScreen/>}{active === 'lost' && <LostSalesScreen/>}</main>
     <nav className="tabbar" aria-label="Main navigation">{tabs.map(tab => <button key={tab.id} className={`tab ${active === tab.id ? 'active' : ''}`} onClick={() => setActive(tab.id)}><span className="tab-icon">{tab.icon}</span><span>{tab.hi}</span><small>{tab.en}</small></button>)}</nav>
   </div>
 }

@@ -19,5 +19,14 @@ export async function seedDemoData() {
   await db.transaction('rw', db.items, db.sales, db.lostSales, async () => {
     await Promise.all([db.items.clear(), db.sales.clear(), db.lostSales.clear()])
     await db.items.bulkAdd(demoItems)
+    const [parleG, maggi] = await Promise.all([
+      db.items.where('name_en').equals('Parle-G').first(),
+      db.items.where('name_en').equals('Maggi noodles').first(),
+    ])
+    const now = Date.now()
+    await db.lostSales.bulkAdd([
+      { itemId: parleG?.id ?? null, rawName: 'Parle-G', timestamp: now - 2 * 86400000 },
+      { itemId: maggi?.id ?? null, rawName: 'Maggi', timestamp: now - 4 * 86400000 },
+    ])
   })
 }

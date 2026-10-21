@@ -1,5 +1,18 @@
 .app-shell { max-width: 760px; min-height: 100vh; margin: 0 auto; padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 .offline-banner { padding:9px 12px; background:#fff7ed; color:#9a3412; text-align:center; font-size:13px; font-weight:700; }
+.inventory-summary { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px; }
+.summary-cell { min-height:104px;border-radius:16px;padding:14px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;color:#fff; }
+.summary-cell strong { font-size:28px;line-height:1.1;font-weight:900; }
+.summary-cell span { font-size:12px;font-weight:700;margin-top:6px; }
+.summary-cash { background:#dc2626; }.summary-lost { background:#d97706; }
+.voice-entry { display:flex;flex-direction:column;align-items:center;gap:8px;margin:-2px 0 18px; }
+.voice-mic { width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:#16a34a;color:white;font-size:28px;box-shadow:0 5px 14px #16a34a40;transition:transform .15s,opacity .15s; }
+.voice-mic:hover:not(:disabled) { transform:scale(1.04); }.voice-mic:disabled { opacity:.42;cursor:not-allowed;box-shadow:none; }
+.voice-mic.recording { animation:voice-pulse 1s infinite; }
+.voice-label { color:#166534;font-size:14px;font-weight:700;min-height:22px; }
+.voice-confirm { position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));width:min(calc(100% - 24px),728px);box-shadow:0 12px 36px #11182730; }
+.voice-warning { border-radius:10px;background:#fef3c7;color:#92400e;padding:10px 12px;font-size:13px;font-weight:700;margin-bottom:12px; }
+@keyframes voice-pulse { 0%,100% { box-shadow:0 0 0 0 #16a34a55; } 50% { box-shadow:0 0 0 12px #16a34a10; } }
 .topbar { height: 76px; background: white; border-bottom: 1px solid #e5e9e5; display:flex; align-items:center; gap:12px; padding: 12px 20px; position: sticky; top: 0; z-index: 5; }
 .brand-mark { width:42px;height:42px;border-radius:14px;background:#16a34a;color:white;display:grid;place-items:center;font-weight:800;font-size:24px; }
 .topbar h1 { margin:0;font-size:18px;font-weight:800;line-height:1.2 }.topbar p { margin:2px 0 0;font-size:12px;color:#64748b }.offline-pill { margin-left:auto;font-size:11px;color:#15803d;background:#f0fdf4;border-radius:999px;padding:8px 10px; }

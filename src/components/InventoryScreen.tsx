@@ -1,12 +1,34 @@
 import { useEffect, useState } from 'react'
-import { db, type Item } from '../db'
+import { db, getStuckCash, type Item } from '../db'
 import { seedDemoData } from '../seed'
 
-export default function InventoryScreen() {
+interface InventoryScreenProps { onNavigate: (tab: 'reorder' | 'lost') => void }
+
+export default function InventoryScreen({ onNavigate }: InventoryScreenProps) {
   const [items, setItems] = useState<Item[]>([]), [error, setError] = useState(''), [showForm, setShowForm] = useState(false)
+  const [stuckCash, setStuckCash] = useState(0), [lostSalesThisWeek, setLostSalesThisWeek] = useState(0)
   const [form, setForm] = useState({ name_hi: '', name_en: '', unit: 'pcs', qty: '', reorderLevel: '', costPrice: '' })
   async function refresh() { try { setItems(await db.items.toArray()); setError('') } catch (e) { setError(String(e)) } }
-  useEffect(() => { void refresh() }, [])
+  async function refreshSummary() {
+    try {
+      const [cash, lostCount] = await Promise.all([
+        getStuckCash(),
+        db.lostSales.where('timestamp').above(Date.now() - 7 * 86400000).count(),
+      ])
+      setStuckCash(cash)
+      setLostSalesThisWeek(lostCount)
+      setError('')
+    } catch (e) { setError(String(e)) }
+  }
+  useEffect(() => {
+    void refresh()
+    void refreshSummary()
+    const onFocus = () => { void refreshSummary() }
+    const onVisibility = () => { if (document.visibilityState === 'visible') void refreshSummary() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => { window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onVisibility) }
+  }, [])
   async function addStock(item: Item) {
     const amount = Number(window.prompt(`Add stock to ${item.name_en} (${item.unit})`, '1'))
     if (!Number.isFinite(amount) || amount <= 0 || item.id == null) return
@@ -16,8 +38,12 @@ export default function InventoryScreen() {
     event.preventDefault()
     try { await db.items.add({ ...form, qty: Number(form.qty), reorderLevel: Number(form.reorderLevel), costPrice: Number(form.costPrice), aliases: [], lastSoldAt: null }); setForm({ name_hi: '', name_en: '', unit: 'pcs', qty: '', reorderLevel: '', costPrice: '' }); setShowForm(false); await refresh() } catch (e) { setError(String(e)) }
   }
-  async function seed() { try { await seedDemoData(); await refresh() } catch (e) { setError(String(e)) } }
+  async function seed() { try { await seedDemoData(); await refresh(); await refreshSummary() } catch (e) { setError(String(e)) } }
   return <section>
+    <div className="inventory-summary" aria-label="Shop summary">
+      <button className="summary-cell summary-cash" onClick={() => onNavigate('reorder')}><strong>₹{stuckCash.toFixed(0)}</strong><span>अटका / Stuck</span></button>
+      <button className="summary-cell summary-lost" onClick={() => onNavigate('lost')}><strong>{lostSalesThisWeek}</strong><span>बार माँगा गया / Asked this week</span></button>
+    </div>
     <div className="flex flex-wrap gap-3 mb-5"><button className="btn-primary" onClick={() => setShowForm(v => !v)}>＋ Add new item / नया सामान</button><button className="btn-outline" onClick={() => void seed()}>Demo data / नमूना सामान</button></div>
     {error && <div className="error-banner">{error}</div>}
     {showForm && <form onSubmit={saveItem} className="card grid gap-3 mb-5 sm:grid-cols-2"><h2 className="font-bold text-lg sm:col-span-2">Add item / नया सामान</h2>
